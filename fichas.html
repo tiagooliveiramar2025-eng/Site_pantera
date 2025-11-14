@@ -1,186 +1,170 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Fichas - Espaço dos ADMS do Pantera</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fichas - Pantera</title>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background-color: #0a3d62;
-  color: white;
-  text-align: center;
-  padding: 40px;
-}
-h1 { margin-bottom: 30px; }
-input[type="text"], input[type="password"] {
-  padding: 10px; border-radius: 8px; border: none;
-  width: 250px; margin: 10px;
-}
-button {
-  background-color: #ff66b2; border: none; color: white;
-  padding: 10px 20px; border-radius: 8px; cursor: pointer;
-}
-button:hover { background-color: #ff80c0; }
-.ficha-card {
-  background-color: white; color: #0a3d62;
-  border-radius: 12px; margin: 10px auto; padding: 15px; width: 280px;
-}
-#admin-login {
-  position: fixed; top: 60%; right: 20px; transform: translateY(-50%);
-  background-color: rgba(255,255,255,0.15); padding: 10px;
-  border-radius: 10px; text-align: center;
-}
-#admin-login input { width: 120px; }
-#admin-login small {
-  display: block; color: #ddd; margin-top: 5px; font-size: 12px;
-}
-</style>
+  <style>
+    body {
+      background-color: #004aad;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 { margin-bottom: 20px; }
+
+    .container {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #ffcc00;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+  </style>
 </head>
+
 <body>
+  <h1>Sistema de Fichas - Pantera</h1>
 
-<div id="admin-login">
-  <input type="password" id="senha" placeholder="Senha">
-  <small>ignore esta janela</small>
-</div>
+  <div class="container">
+    <input id="nome" type="text" placeholder="Nome da Ficha">
+    <button onclick="adicionarFicha()">Adicionar Ficha</button>
 
-<h1>Fichas dos ADMS</h1>
+    <input id="buscar" type="text" placeholder="Buscar Ficha">
+    <button onclick="buscarFicha()">Buscar</button>
 
-<input type="text" id="busca" placeholder="Buscar por nome..." />
-<button onclick="buscarFicha()">Buscar</button>
+    <button onclick="apagarFicha()">Apagar Ficha</button>
+    <button onclick="adicionarHoras()">Adicionar Horas</button>
 
-<div id="resultado"></div>
+    <p id="resultado"></p>
+  </div>
 
-<button id="add-btn" style="display:none;" onclick="adicionarFicha()">Adicionar Ficha</button>
-<button id="delete-btn" style="display:none;" onclick="apagarFicha()">Apagar Ficha</button>
-<button id="add-hours-btn" style="display:none;" onclick="adicionarHoras()">Adicionar Horas</button>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<!-- ============ FIREBASE ============ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs, query,
-  deleteDoc, doc, updateDoc, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    // CONFIG DO SEU FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gypZc5Efz-DoguGbJ9is-gYy2Dhr0rY",
+      authDomain: "pantera-8e6d0.firebaseapp.com",
+      projectId: "pantera-8e6d0",
+      storageBucket: "pantera-8e6d0.appspot.com",
+      messagingSenderId: "1000862780737",
+      appId: "1:1000862780737:web:cc8f620386c7ef2267d809"
+    };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCLD5rkjuJetI1abLByVRWVt1nfF1gM13A",
-  authDomain: "antera-city.firebaseapp.com",
-  projectId: "antera-city",
-  storageBucket: "antera-city.firebasestorage.app",
-  messagingSenderId: "49146390770",
-  appId: "1:49146390770:web:f66f4b1bce27cf169a486b"
-};
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const fichasRef = collection(db, "fichas");
+    function formatTempo(minutos) {
+      if (!minutos) return "0h 0m";
+      const h = Math.floor(minutos / 60);
+      const m = minutos % 60;
+      return `${h}h ${m}m`;
+    }
 
-let fichas = []; // agora vem do Firestore
+    async function adicionarFicha() {
+      const nome = document.getElementById("nome").value.trim();
+      if (nome === "") return alert("Digite um nome!");
 
-// ====== TEMPO REAL ======
-onSnapshot(fichasRef, (snapshot) => {
-  fichas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  buscarFicha(); // atualiza a tela automaticamente
-});
+      await addDoc(collection(db, "fichas"), {
+        nome: nome.toLowerCase(),
+        totalMinutos: 0
+      });
 
-// ====== Buscar fichas ======
-function buscarFicha() {
-  const termo = document.getElementById("busca").value.toLowerCase();
-  const resultado = document.getElementById("resultado");
-  resultado.innerHTML = "";
+      alert("Ficha adicionada!");
+      document.getElementById("nome").value = "";
+    }
 
-  const filtrados = fichas.filter(f => f.nome.toLowerCase().includes(termo));
+    async function buscarFicha() {
+      const nomeBusca = document.getElementById("buscar").value.trim().toLowerCase();
+      if (nomeBusca === "") return alert("Digite um nome!");
 
-  if (filtrados.length === 0) {
-    resultado.innerHTML = "<p>Nenhuma ficha encontrada.</p>";
-    return;
-  }
+      const snap = await getDocs(collection(db, "fichas"));
+      let ficha = null;
 
-  filtrados.forEach(f => {
-    const h = f.totalMinutos >= 60 ?
-      Math.floor(f.totalMinutos / 60) + " hrs" :
-      (f.totalMinutos || 0) + " min";
+      snap.forEach(docu => {
+        if (docu.data().nome === nomeBusca) {
+          ficha = { id: docu.id, ...docu.data() };
+        }
+      });
 
-    resultado.innerHTML += `
-      <div class="ficha-card">
-        <h3>${f.nome}</h3>
-        <p>Cargo: ${f.cargo}</p>
-        <p>Status: ${f.status}</p>
-        <p>Horas trabalhadas: ${h}</p>
-      </div>
-    `;
-  });
-}
+      if (!ficha) return alert("Ficha não encontrada!");
 
-// ====== Controle de senha ======
-const senhaInput = document.getElementById("senha");
-senhaInput.addEventListener("input", () => {
-  const ok = senhaInput.value === "0625";
-  document.getElementById("add-btn").style.display = ok ? "inline-block" : "none";
-  document.getElementById("delete-btn").style.display = ok ? "inline-block" : "none";
-  document.getElementById("add-hours-btn").style.display = ok ? "inline-block" : "none";
-});
+      document.getElementById("resultado").textContent =
+        `Nome: ${ficha.nome} | Tempo: ${formatTempo(ficha.totalMinutos)}`;
+    }
 
-// ====== Adicionar ficha ======
-async function adicionarFicha() {
-  const nome = prompt("Nome:");
-  const cargo = prompt("Cargo:");
-  const status = prompt("Status:");
+    async function apagarFicha() {
+      const nomeBusca = document.getElementById("buscar").value.trim().toLowerCase();
+      if (!nomeBusca) return alert("Digite um nome!");
 
-  if (!nome || !cargo || !status) return alert("Preencha tudo.");
+      const snap = await getDocs(collection(db, "fichas"));
+      let ficha = null;
 
-  await addDoc(fichasRef, {
-    nome, cargo, status, totalMinutos: 0
-  });
-  alert("Ficha adicionada!");
-}
+      snap.forEach(docu => {
+        if (docu.data().nome === nomeBusca) {
+          ficha = { id: docu.id };
+        }
+      });
 
-// ====== Apagar ficha ======
-async function apagarFicha() {
-  const nome = prompt("Nome da ficha para apagar:");
-  const ficha = fichas.find(f => f.nome.toLowerCase() === nome.toLowerCase());
-  if (!ficha) return alert("Ficha não encontrada.");
+      if (!ficha) return alert("Ficha não encontrada!");
 
-  await deleteDoc(doc(db, "fichas", ficha.id));
-  alert("Ficha apagada!");
-}
+      await deleteDoc(doc(db, "fichas", ficha.id));
+      alert("Ficha apagada!");
+      document.getElementById("resultado").textContent = "";
+    }
 
-// ====== Adicionar horas ======
-async function adicionarHoras() {
-  const nome = prompt("Nome da ficha:");
-  const ficha = fichas.find(f => f.nome.toLowerCase() === nome.toLowerCase());
-  if (!ficha) return alert("Ficha não encontrada.");
+    async function adicionarHoras() {
+      const nomeBusca = document.getElementById("buscar").value.trim().toLowerCase();
+      if (!nomeBusca) return alert("Digite um nome!");
 
-  const minutos = Number(prompt("Quantos minutos deseja adicionar?"));
-  if (isNaN(minutos) || minutos <= 0) return alert("Valor inválido!");
+      const snap = await getDocs(collection(db, "fichas"));
+      let ficha = null;
 
-  await updateDoc(doc(db, "fichas", ficha.id), {
-    totalMinutos: (ficha.totalMinutos || 0) + minutos
-  });
+      snap.forEach(docu => {
+        if (docu.data().nome === nomeBusca) {
+          ficha = { id: docu.id, ...docu.data() };
+        }
+      });
 
-  alert("Horas adicionadas!");
-}
+      if (!ficha) return alert("Ficha não encontrada!");
 
-</script>
-</body>
-</html>e.toLowerCase());
-  if (!ficha) { alert("Ficha não encontrada!"); return; }
+      let minutos = prompt("Quantos minutos deseja adicionar?");
+      minutos = Number(minutos);
 
-  let minutos = prompt("Quantos minutos deseja adicionar?");
-  minutos = Number(minutos);
-  if (isNaN(minutos) || minutos <= 0) { alert("Número inválido!"); return; }
+      if (isNaN(minutos) || minutos <= 0) return alert("Valor inválido!");
 
-  ficha.totalMinutos = (ficha.totalMinutos || 0) + minutos;
-  salvarFichas(); // salva automaticamente
-  alert(`Horas adicionadas! Total agora: ${formatTempo(ficha.totalMinutos)}`);
-  buscarFicha();
-}
+      await updateDoc(doc(db, "fichas", ficha.id), {
+        totalMinutos: ficha.totalMinutos + minutos
+      });
 
-// ====== Mostrar todas as fichas ao carregar ======
-buscarFicha();
-</script>
-
+      alert("Horas adicionadas!");
+    }
+  </script>
 </body>
 </html>
