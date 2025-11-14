@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bater Ponto - Espaço dos ADMS do Pantera</title>
+<style>
+body { font-family: Arial, sans-serif; background-color: #ffffff; color: #0a3d62; text-align: center; padding: 40px; }
+h1 { margin-bottom: 30px; color: #0a3d62; }
+input[type="text"], select { padding: 10px; border-radius: 8px; border: 2px solid #ff66b2; width: 250px; margin: 10px; font-size: 16px; }
+button { background-color: #ff66b2; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 16px; }
+button:hover { background-color: #ff80c0; }
+.container { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+
+<h1>Bater Ponto</h1>
+<form id="pontoForm" class="container" action="https://formspree.io/f/xdkyojve" method="POST">
+  <input type="text" name="nome" placeholder="Nome e sobrenome" required>
+  <input type="text" name="inicio" placeholder="Horário de início" required>
+  <input type="text" name="fim" placeholder="Horário do término" required>
+  
+  <label for="nota">Nota para a decoração do server:</label>
+  <select name="nota" id="nota" required>
+    <option value="">Selecione...</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+  </select>
+  
+  <button type="submit">Enviar</button>
+</form>
+
+<script>
+document.getElementById("pontoForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const form = e.target;
+  
+  fetch(form.action, {
+    method: "POST",
+    body: new FormData(form),
+    headers: { 'Accept': 'application/json' }
+  }).then(response => {
+    if (response.ok) {
+      alert("Ponto registrado com sucesso! Você receberá a confirmação por email.");
+      form.reset();
+    } else {
+      alert("Erro ao enviar. Tente novamente.");
+    }
+  }).catch(error => {
+    alert("Erro ao enviar. Tente novamente.");
+  });
+});
+</script>
+
+</body>
+</html>Ponto registrado com sucesso!");
+      
+      // Aqui você pode depois conectar com Formspree ou outro serviço se quiser salvar os dados.
+    }
+  </script>
+</body>
+</html>
