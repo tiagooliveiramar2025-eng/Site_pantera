@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dúvidas - Pantera</title>
+  <style>
+    body { background-color: #004aad; color: white; font-family: Arial; text-align: center; padding: 50px; }
+    textarea, button { display: block; margin: 15px auto; padding: 10px; width: 300px; border-radius: 8px; border: none; }
+    textarea { height: 120px; }
+    button { background-color: #ff66b2; color: white; cursor: pointer; transition: background 0.3s; }
+    button:hover { background-color: #ff85c2; }
+  </style>
+</head>
+<body>
+  <h1>Envie sua dúvida</h1>
+  <form id="duvidasForm" action="https://formspree.io/f/xjkjvlno" method="POST">
+    <textarea name="duvida" placeholder="Digite sua dúvida aqui..." required></textarea>
+    <button type="submit">Enviar</button>
+  </form>
+  <p id="mensagem"></p>
+  <script>
+    const form = document.getElementById('duvidasForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } });
+      document.getElementById('mensagem').textContent = response.ok ? 'Sua mensagem foi enviada com sucesso!' : 'Erro ao enviar. Tente novamente.';
+      if (response.ok) form.reset();
+    });
+  </script>
+</body>
+</html>

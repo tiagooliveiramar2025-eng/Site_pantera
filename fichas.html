@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fichas - Espaço dos ADMS do Pantera</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #0a3d62;
+  color: white;
+  text-align: center;
+  padding: 40px;
+}
+h1 { margin-bottom: 30px; }
+input[type="text"], input[type="password"] {
+  padding: 10px; border-radius: 8px; border: none;
+  width: 250px; margin: 10px;
+}
+button {
+  background-color: #ff66b2; border: none; color: white;
+  padding: 10px 20px; border-radius: 8px; cursor: pointer;
+}
+button:hover { background-color: #ff80c0; }
+.ficha-card {
+  background-color: white; color: #0a3d62;
+  border-radius: 12px; margin: 10px auto; padding: 15px; width: 280px;
+}
+#admin-login {
+  position: fixed; top: 60%; right: 20px; transform: translateY(-50%);
+  background-color: rgba(255,255,255,0.15); padding: 10px;
+  border-radius: 10px; text-align: center;
+}
+#admin-login input { width: 120px; }
+#admin-login small {
+  display: block; color: #ddd; margin-top: 5px; font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<div id="admin-login">
+  <input type="password" id="senha" placeholder="Senha">
+  <small>ignore esta janela</small>
+</div>
+
+<h1>Fichas dos ADMS</h1>
+
+<input type="text" id="busca" placeholder="Buscar por nome..." />
+<button onclick="buscarFicha()">Buscar</button>
+
+<div id="resultado"></div>
+
+<button id="add-btn" style="display:none;" onclick="adicionarFicha()">Adicionar Ficha</button>
+<button id="delete-btn" style="display:none;" onclick="apagarFicha()">Apagar Ficha</button>
+<button id="add-hours-btn" style="display:none;" onclick="adicionarHoras()">Adicionar Horas</button>
+
+<!-- ============ FIREBASE ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query,
+  deleteDoc, doc, updateDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCLD5rkjuJetI1abLByVRWVt1nfF1gM13A",
+  authDomain: "antera-city.firebaseapp.com",
+  projectId: "antera-city",
+  storageBucket: "antera-city.firebasestorage.app",
+  messagingSenderId: "49146390770",
+  appId: "1:49146390770:web:f66f4b1bce27cf169a486b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const fichasRef = collection(db, "fichas");
+
+let fichas = []; // agora vem do Firestore
+
+// ====== TEMPO REAL ======
+onSnapshot(fichasRef, (snapshot) => {
+  fichas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  buscarFicha(); // atualiza a tela automaticamente
+});
+
+// ====== Buscar fichas ======
+function buscarFicha() {
+  const termo = document.getElementById("busca").value.toLowerCase();
+  const resultado = document.getElementById("resultado");
+  resultado.innerHTML = "";
+
+  const filtrados = fichas.filter(f => f.nome.toLowerCase().includes(termo));
+
+  if (filtrados.length === 0) {
+    resultado.innerHTML = "<p>Nenhuma ficha encontrada.</p>";
+    return;
+  }
+
+  filtrados.forEach(f => {
+    const h = f.totalMinutos >= 60 ?
+      Math.floor(f.totalMinutos / 60) + " hrs" :
+      (f.totalMinutos || 0) + " min";
+
+    resultado.innerHTML += `
+      <div class="ficha-card">
+        <h3>${f.nome}</h3>
+        <p>Cargo: ${f.cargo}</p>
+        <p>Status: ${f.status}</p>
+        <p>Horas trabalhadas: ${h}</p>
+      </div>
+    `;
+  });
+}
+
+// ====== Controle de senha ======
+const senhaInput = document.getElementById("senha");
+senhaInput.addEventListener("input", () => {
+  const ok = senhaInput.value === "0625";
+  document.getElementById("add-btn").style.display = ok ? "inline-block" : "none";
+  document.getElementById("delete-btn").style.display = ok ? "inline-block" : "none";
+  document.getElementById("add-hours-btn").style.display = ok ? "inline-block" : "none";
+});
+
+// ====== Adicionar ficha ======
+async function adicionarFicha() {
+  const nome = prompt("Nome:");
+  const cargo = prompt("Cargo:");
+  const status = prompt("Status:");
+
+  if (!nome || !cargo || !status) return alert("Preencha tudo.");
+
+  await addDoc(fichasRef, {
+    nome, cargo, status, totalMinutos: 0
+  });
+  alert("Ficha adicionada!");
+}
+
+// ====== Apagar ficha ======
+async function apagarFicha() {
+  const nome = prompt("Nome da ficha para apagar:");
+  const ficha = fichas.find(f => f.nome.toLowerCase() === nome.toLowerCase());
+  if (!ficha) return alert("Ficha não encontrada.");
+
+  await deleteDoc(doc(db, "fichas", ficha.id));
+  alert("Ficha apagada!");
+}
+
+// ====== Adicionar horas ======
+async function adicionarHoras() {
+  const nome = prompt("Nome da ficha:");
+  const ficha = fichas.find(f => f.nome.toLowerCase() === nome.toLowerCase());
+  if (!ficha) return alert("Ficha não encontrada.");
+
+  const minutos = Number(prompt("Quantos minutos deseja adicionar?"));
+  if (isNaN(minutos) || minutos <= 0) return alert("Valor inválido!");
+
+  await updateDoc(doc(db, "fichas", ficha.id), {
+    totalMinutos: (ficha.totalMinutos || 0) + minutos
+  });
+
+  alert("Horas adicionadas!");
+}
+
+</script>
+</body>
+</html>e.toLowerCase());
+  if (!ficha) { alert("Ficha não encontrada!"); return; }
+
+  let minutos = prompt("Quantos minutos deseja adicionar?");
+  minutos = Number(minutos);
+  if (isNaN(minutos) || minutos <= 0) { alert("Número inválido!"); return; }
+
+  ficha.totalMinutos = (ficha.totalMinutos || 0) + minutos;
+  salvarFichas(); // salva automaticamente
+  alert(`Horas adicionadas! Total agora: ${formatTempo(ficha.totalMinutos)}`);
+  buscarFicha();
+}
+
+// ====== Mostrar todas as fichas ao carregar ======
+buscarFicha();
+</script>
+
+</body>
+</html>

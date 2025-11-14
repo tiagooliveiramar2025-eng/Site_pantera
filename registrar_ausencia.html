@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro de Ausência - Pantera</title>
+  <style>
+    body { background-color: #004aad; color: white; font-family: Arial; text-align: center; padding: 50px; }
+    input, textarea, button { display: block; margin: 15px auto; padding: 10px; width: 300px; border-radius: 8px; border: none; }
+    textarea { height: 120px; }
+    button { background-color: #ff66b2; color: white; cursor: pointer; transition: background 0.3s; }
+    button:hover { background-color: #ff85c2; }
+  </style>
+</head>
+<body>
+  <h1>Registrar ausência</h1>
+  <form id="ausenciaForm" action="https://formspree.io/f/xjkjvlno" method="POST">
+    <!-- Caixa para Nome e Sobrenome -->
+    <input type="text" name="nome_completo" placeholder="Nome e Sobrenome" required />
+    <!-- Caixa para motivo da ausência -->
+    <textarea name="motivo" placeholder="Descreva o motivo da ausência..." required></textarea>
+    <!-- Campo oculto para definir assunto do e-mail -->
+    <input type="hidden" name="_subject" value="Registro de ausência" />
+    <!-- Campo oculto para a data/hora -->
+    <input type="hidden" name="data_hora" id="data_hora" />
+    <button type="submit">Enviar</button>
+  </form>
+  <p id="mensagem"></p>
+
+  <script>
+    const form = document.getElementById('ausenciaForm');
+    const dataHoraInput = document.getElementById('data_hora');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Adiciona data e hora atual
+      const agora = new Date();
+      const dia = String(agora.getDate()).padStart(2,'0');
+      const mes = String(agora.getMonth()+1).padStart(2,'0'); // meses de 0-11
+      const ano = agora.getFullYear();
+      const hora = String(agora.getHours()).padStart(2,'0');
+      const min = String(agora.getMinutes()).padStart(2,'0');
+      const seg = String(agora.getSeconds()).padStart(2,'0');
+      dataHoraInput.value = `${dia}/${mes}/${ano} ${hora}:${min}:${seg}`;
+
+      const response = await fetch(form.action, { 
+        method: 'POST', 
+        body: new FormData(form), 
+        headers: { 'Accept': 'application/json' } 
+      });
+
+      document.getElementById('mensagem').textContent = response.ok 
+        ? 'Seu registro de ausência foi enviado com sucesso!' 
+        : 'Erro ao enviar. Tente novamente.';
+      if (response.ok) form.reset();
+    });
+  </script>
+</body>
+</html>
